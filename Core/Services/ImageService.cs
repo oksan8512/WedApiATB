@@ -7,13 +7,17 @@ using SixLabors.ImageSharp.Processing;
 
 namespace Core.Services;
 
+
 public class ImageService(IConfiguration configuration) : IImageService
 {
+    // Видаляє зображення 
     public async Task DeleteImageAsync(string name)
     {
+        // Отримує розмір зображення
         var sizes = configuration.GetRequiredSection("ImageSizes").Get<List<int>>();
         var dir = Path.Combine(Directory.GetCurrentDirectory(), configuration["ImagesDir"]!);
 
+        // Створює паралельні задачі для видалення кожного файлу
         Task[] tasks = sizes
             .AsParallel()
             .Select(size =>
@@ -32,6 +36,7 @@ public class ImageService(IConfiguration configuration) : IImageService
         await Task.WhenAll(tasks);
     }
 
+    // Завантажує зображення з URL і зберігає його
     public async Task<string> SaveImageFromUrlAsync(string imageUrl)
     {
         using var httpClient = new HttpClient();
@@ -39,7 +44,7 @@ public class ImageService(IConfiguration configuration) : IImageService
         return await SaveImageAsync(imageBytes);
     }
 
-
+    // Зберігає зображення, отримане з форми (IFormFile)
     public async Task<string> SaveImageAsync(IFormFile file)
     {
         using MemoryStream ms = new();
@@ -50,11 +55,14 @@ public class ImageService(IConfiguration configuration) : IImageService
         return imageName;
     }
 
+    // зберігає зображення у кількох розмірах
     private async Task<string> SaveImageAsync(byte[] bytes)
     {
+        // Генерує випадкове ім’я файлу з розширенням .webp
         string imageName = $"{Path.GetRandomFileName()}.webp";
         var sizes = configuration.GetRequiredSection("ImageSizes").Get<List<int>>();
 
+        // Створює паралельні задачі для збереження зображення в кожному розмірі
         Task[] tasks = sizes
             .AsParallel()
             .Select(s => SaveImageAsync(bytes, imageName, s))
@@ -65,8 +73,10 @@ public class ImageService(IConfiguration configuration) : IImageService
         return imageName;
     }
 
+    // Зберігає зображення, передане у форматі base64
     public async Task<string> SaveImageFromBase64Async(string input)
     {
+        // Витягує чисті base64-дані (без префіксу типу)
         var base64Data = input.Contains(",")
            ? input.Substring(input.IndexOf(",") + 1)
            : input;
@@ -76,19 +86,26 @@ public class ImageService(IConfiguration configuration) : IImageService
         return await SaveImageAsync(imageBytes);
     }
 
+    // змінює розмір зображення і зберігає його
     private async Task SaveImageAsync(byte[] bytes, string name, int size)
     {
         var path = Path.Combine(Directory.GetCurrentDirectory(), configuration["ImagesDir"]!,
             $"{size}_{name}");
+
+        // Завантажує зображення з байтів
         using var image = Image.Load(bytes);
-        image.Mutate(async imgConext =>
+
+        // Змінює розмір зображення (режим Max — зберігає пропорції)
+        image.Mutate(imgContext =>
         {
-            imgConext.Resize(new ResizeOptions
+            imgContext.Resize(new ResizeOptions
             {
                 Size = new Size(size, size),
                 Mode = ResizeMode.Max
             });
         });
+
+        // Зберігає зображення у форматі WebP
         await image.SaveAsync(path, new WebpEncoder());
     }
 }
