@@ -10,44 +10,117 @@ namespace WebApiATB.Controllers
 {
     [Route("api/[controller]/[action]")]
     [ApiController]
-    public class AccountController(UserManager<UserEntity> userManager,
-        IImageService imageService, IMapper mapper,
+    public class AccountController(
+        UserManager<UserEntity> userManager,
+        IImageService imageService,
+        IMapper mapper,
         IJwtTokenService jwtTokenService) : ControllerBase
     {
+        /// <summary>
+        /// Реєстрація нового користувача
+        /// </summary>
         [HttpPost]
         public async Task<IActionResult> Register([FromForm] RegisterModel model)
         {
-            var user = mapper.Map<UserEntity>(model);
-            if (model.Image != null)
+            // Валідація моделі
+            if (!ModelState.IsValid)
             {
-                user.Image = await imageService.SaveImageAsync(model.Image);
+                return BadRequest(ModelState);
             }
 
-            var result = await userManager.CreateAsync(user, model.Password);
-            if (result.Succeeded)
+            var user = mapper.Map<UserEntity>(model);
+
+            // Збереження зображення
+            if (model.Image != null)
             {
-                result = await userManager.AddToRoleAsync(user, Roles.User);
-                if (result.Succeeded)
+                try
                 {
-                    return Ok();
+                    user.Image = await imageService.SaveImageAsync(model.Image);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest(new { message = "Помилка при збереженні зображення", error = ex.Message });
                 }
             }
 
-            return BadRequest();
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Login([FromBody] LoginModel model)
-        {
-            var user = await userManager.FindByEmailAsync(model.Email);
-            if (user == null)
+            // Створення користувача
+            var createResult = await userManager.CreateAsync(user, model.Password);
+            if (!createResult.Succeeded)
             {
-                return BadRequest();
+                return BadRequest(new
+                {
+                    message = "Не вдалося створити користувача",
+                    errors = createResult.Errors.Select(e => new { e.Code, e.Description })
+                });
             }
+
+            // Додавання ролі
+            var roleResult = await userManager.AddToRoleAsync(user, Roles.User);
+            if (!roleResult.Succeeded)
+            {
+                // Опціонально: видалити користувача, якщо роль не додалася
+                await userManager.DeleteAsync(user);
+                return BadRequest(new
+                {
+                    message = "Не вдалося призначити роль",
+                    errors = roleResult.Errors.Select(e => new { e.Code, e.Description })
+                });
+            }
+
+            // Генерація JWT токена
             var token = await jwtTokenService.CreateTokenAsync(user);
+
+            // Повертаємо ТОКЕН і ДАНІ користувача
             return Ok(new
             {
                 token,
+                user = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    image = user.Image
+                }
+            });
+        }
+
+        /// <summary>
+        /// Вхід користувача в систему
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> Login([FromBody] LoginModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var user = await userManager.FindByEmailAsync(model.Email);
+            if (user == null)
+            {
+                return BadRequest(new { message = "Користувача з такою поштою не знайдено" });
+            }
+
+            var isPasswordValid = await userManager.CheckPasswordAsync(user, model.Password);
+            if (!isPasswordValid)
+            {
+                return BadRequest(new { message = "Невірний пароль" });
+            }
+
+            var token = await jwtTokenService.CreateTokenAsync(user);
+
+            return Ok(new
+            {
+                token,
+                user = new
+                {
+                    id = user.Id,
+                    email = user.Email,
+                    firstName = user.FirstName,
+                    lastName = user.LastName,
+                    image = user.Image
+                }
             });
         }
     }
