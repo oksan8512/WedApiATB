@@ -1,0 +1,11 @@
+# Складальні папки .NET
+bin/
+obj/
+
+# Залежності Node.js
+node_modules/
+dist/
+
+# Локальні налаштування
+.env
+appsettings.Development.json
