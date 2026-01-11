@@ -110,9 +110,8 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-var dir = builder.Configuration["ImagesDir"] ?? "";
-
-dir = dir.TrimEnd('/');
+var dir = builder.Configuration["ImagesDir"] ?? "images"; // додаємо значення за замовчуванням
+dir = dir.Trim('/'); // Видаляємо слеші з обох боків
 
 string path = Path.Combine(Directory.GetCurrentDirectory(), dir);
 Directory.CreateDirectory(path);
@@ -120,9 +119,7 @@ Directory.CreateDirectory(path);
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(path),
-    RequestPath = $"/{dir}"
+    RequestPath = new PathString("/" + dir) // Використовуємо PathString для безпеки
 });
-
-await app.SeedData();
 
 app.Run();
