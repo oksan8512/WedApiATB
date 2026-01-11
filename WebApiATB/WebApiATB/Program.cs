@@ -78,22 +78,23 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
     };
-})
-// Cookie Authentication для Google OAuth
-.AddCookie(options =>
-{
-    options.LoginPath = "/api/Account/GoogleLogin";
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-})
-// Google Authentication
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.Scope.Add("profile");
-    options.SaveTokens = true;
 });
+
+//// Cookie Authentication для Google OAuth
+//.AddCookie(options =>
+//{
+//    options.LoginPath = "/api/Account/GoogleLogin";
+//    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+//})
+//// Google Authentication
+//.AddGoogle(options =>
+//{
+//    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
+//    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
+//    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+//    options.Scope.Add("profile");
+//    options.SaveTokens = true;
+//});
 
 var app = builder.Build();
 
