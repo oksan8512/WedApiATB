@@ -1,7 +1,21 @@
+@"
+# Build results
 bin/
 obj/
 .vs/
+
+# User-specific files
 *.user
+*.suo
+*.userosscache
+
+# Sensitive data
 appsettings.json
 appsettings.Development.json
+
+# Images folder
 images/
+
+# Logs
+*.log
+"@ | Set-Content -Path .gitignore -Encoding utf8
