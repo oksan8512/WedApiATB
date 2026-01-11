@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Core</name>
+    </assembly>
+    <members>
+        <member name="P:Core.Models.Account.LoginModel.Email">
+            <summary>
+            Електронна пошта користувача
+            </summary>
+            <example>admin@example.com</example>
+        </member>
+        <member name="P:Core.Models.Account.LoginModel.Password">
+            <summary>
+            Пароль користувача
+            </summary>
+            <example>Admin123!</example>
+        </member>
+        <member name="P:Core.Models.Account.RegisterModel.Email">
+            <summary>
+            Пошта користувача
+            </summary>
+            <example>bib@gmail.com</example>
+        </member>
+        <member name="P:Core.Models.Account.RegisterModel.FirstName">
+            <summary>
+            Ім'я користувача
+            </summary>
+            <example>Василь</example>
+        </member>
+        <member name="P:Core.Models.Account.RegisterModel.LastName">
+            <summary>
+            Прізвище
+            </summary>
+            <example>Дубко</example>
+        </member>
+        <member name="P:Core.Models.Account.RegisterModel.Image">
+            <summary>
+            Аватар користувача
+            </summary>
+        </member>
+        <member name="P:Core.Models.Account.RegisterModel.Password">
+            <summary>
+            Пароль
+            </summary>
+            <example>123456</example>
+        </member>
+    </members>
+</doc>
