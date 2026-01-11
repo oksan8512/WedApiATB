@@ -111,8 +111,12 @@ app.UseAuthorization();
 app.MapControllers();
 
 var dir = builder.Configuration["ImagesDir"] ?? "";
+
+dir = dir.TrimEnd('/');
+
 string path = Path.Combine(Directory.GetCurrentDirectory(), dir);
 Directory.CreateDirectory(path);
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(path),
