@@ -21,6 +21,7 @@ namespace WebApiATB.Controllers
         IConfiguration configuration) : ControllerBase
     {
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Register([FromForm] RegisterModel model)
         {
             var user = mapper.Map<UserEntity>(model);
@@ -42,6 +43,7 @@ namespace WebApiATB.Controllers
         }
 
         [HttpPost]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);
@@ -54,6 +56,7 @@ namespace WebApiATB.Controllers
         }
 
         [HttpGet]
+        [Consumes("multipart/form-data")]
         public IActionResult GoogleLogin()
         {
             var properties = new AuthenticationProperties
@@ -64,6 +67,7 @@ namespace WebApiATB.Controllers
         }
 
         [HttpGet]
+        [Consumes("multipart/form-data")]
         public async Task<IActionResult> GoogleCallback()
         {
             var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);

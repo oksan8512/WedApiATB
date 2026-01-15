@@ -37,11 +37,12 @@ builder.Services.AddIdentity<UserEntity, RoleEntity>(options =>
 
 builder.Services.AddScoped<IImageService, ImageService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ICreateAdminService, CreateAdminService>(); // ДОДАНО
+
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddControllers();
 
 var assemblyName = typeof(RegisterModel).Assembly.GetName().Name;
-
 builder.Services.AddSwaggerGen(opt =>
 {
     var fileDoc = $"{assemblyName}.xml";
@@ -55,7 +56,7 @@ builder.Services.AddMvc(options =>
     options.Filters.Add<ValidationFilter>();
 });
 
-builder.Services.AddCors();
+builder.Services.AddOpenApi();
 
 // JWT Authentication
 builder.Services.AddAuthentication(options =>
@@ -78,27 +79,32 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"] ?? ""))
     };
-})
-// Cookie Authentication для Google OAuth
-.AddCookie(options =>
-{
-    options.LoginPath = "/api/Account/GoogleLogin";
-    options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
-})
-// Google Authentication
-.AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.Scope.Add("profile");
-    options.SaveTokens = true;
 });
 
 var app = builder.Build();
 
+// ДОДАНО: Створення адміністратора при старті додатку
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var createAdminService = services.GetRequiredService<ICreateAdminService>();
+        await createAdminService.CreateDefaultAdminAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Помилка при створенні адміністратора");
+    }
+}
+
+app.MapOpenApi();
 app.UseSwagger();
-app.UseSwaggerUI();
+app.UseSwaggerUI(options =>
+{
+    options.SwaggerEndpoint("/openapi/v1.json", "v1");
+});
 
 app.UseCors(u =>
     u.AllowAnyHeader()
@@ -107,19 +113,18 @@ app.UseCors(u =>
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseHttpsRedirection();
 app.MapControllers();
 
-var dir = builder.Configuration["ImagesDir"] ?? "images"; // додаємо значення за замовчуванням
-dir = dir.Trim('/'); // Видаляємо слеші з обох боків
-
+var dir = builder.Configuration["ImagesDir"] ?? "images";
+dir = dir.Trim('/');
 string path = Path.Combine(Directory.GetCurrentDirectory(), dir);
 Directory.CreateDirectory(path);
 
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(path),
-    RequestPath = new PathString("/" + dir) // Використовуємо PathString для безпеки
+    RequestPath = new PathString("/" + dir)
 });
 
 app.Run();

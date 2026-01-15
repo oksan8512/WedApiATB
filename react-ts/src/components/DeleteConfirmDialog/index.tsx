@@ -1,79 +1,55 @@
-import {useState} from "react";
-import classNames from "classnames";
+import { useState } from "react";
 
-interface IProps {
-    title: string,
-    deleteAction?: () => void,
+interface DeleteConfirmDialogProps {
+    id: number;
+    onClose: () => void;
 }
 
-const DeleteConfirmDialog: React.FC<IProps> = ({title, deleteAction}) => {
-    const [isOpen, setIsOpen] = useState<boolean>(false);
-
-    const toggleOpen = () => {
-        setIsOpen(!isOpen);
-    }
+const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = ({ id, onClose }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const handleDelete = async () => {
+        setIsDeleting(true);
         try {
-            if (deleteAction) {
-                await deleteAction();
-            }
-            toggleOpen();
+            // Your delete logic here
+            console.log(`Deleting category with id: ${id}`);
+            // await deleteCategory(id);
+            onClose();
+        } catch (error) {
+            console.error("Error deleting category:", error);
+        } finally {
+            setIsDeleting(false);
         }
-        catch (e) {
-            console.error("Problem with delete", e);
-            alert("Problem with delete");
-        }
-    }
+    };
 
     return (
-        <>
-            <button className="block text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                    type="button" onClick={() => toggleOpen()}>
-                Видалити
-            </button>
-            <div tabIndex={-1}
-                 className={classNames("flex bg-black/50 overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 max-h-full",
-                     { "hidden": !isOpen })} >
-                <div className="relative p-4 w-full max-w-md max-h-full">
-                    <div className="relative bg-white rounded-lg shadow-sm dark:bg-gray-700">
-                        <button type="button" onClick={() => toggleOpen()}
-                                className="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                                data-modal-hide="popup-modal">
-                            <svg className="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                 viewBox="0 0 14 14">
-                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"
-                                      strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-                            </svg>
-                            <span className="sr-only">Close modal</span>
-                        </button>
-                        <div className="p-4 md:p-5 text-center">
-                            <svg className="mx-auto mb-4 text-gray-400 w-12 h-12 dark:text-gray-200" aria-hidden="true"
-                                 xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
-                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"
-                                      strokeWidth="2" d="M10 11V6m0 8h.01M19 10a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
-                            </svg>
-                            <h3 className="mb-5 text-lg font-normal text-gray-500 dark:text-gray-400">
-                                {title}
-                            </h3>
-                            <button data-modal-hide="popup-modal" type="button"
-                                    onClick={() => handleDelete()}
-                                    className="text-white bg-red-600 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:focus:ring-red-800 font-medium rounded-lg text-sm inline-flex items-center px-5 py-2.5 text-center">
-                                Так, видалити
-                            </button>
-                            <button data-modal-hide="popup-modal" type="button"
-                                    onClick={() => toggleOpen()}
-                                    className="py-2.5 px-5 ms-3 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700">
-                                Скасувати
-                            </button>
-                        </div>
-                    </div>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    Підтвердження видалення
+                </h2>
+                <p className="text-gray-700 dark:text-gray-300 mb-6">
+                    Ви впевнені, що хочете видалити цю категорію? Цю дію неможливо скасувати.
+                </p>
+                <div className="flex justify-end gap-3">
+                    <button
+                        onClick={onClose}
+                        disabled={isDeleting}
+                        className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+                    >
+                        Скасувати
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                    >
+                        {isDeleting ? "Видалення..." : "Видалити"}
+                    </button>
                 </div>
             </div>
-
-
-        </>
-    )
-}
+        </div>
+    );
+};
 
 export default DeleteConfirmDialog;

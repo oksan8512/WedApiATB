@@ -1,4 +1,4 @@
-import type {ICategoryItem} from "../../../types/category/ICategoryItem.ts";
+import type { ICategoryItem } from "../../../types/category/ICategoryItem.ts";
 import APP_ENV from "../../../env";
 import DeleteConfirmDialog from "../../../components/DeleteConfirmDialog";
 import { Link } from "react-router-dom";
@@ -9,7 +9,7 @@ interface Props {
     category: ICategoryItem;
 }
 
-const CategoryRow : React.FC<Props> = ({ category }) => {
+const CategoryRow: React.FC<Props> = ({ category }) => {
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
     return (
@@ -48,6 +48,7 @@ const CategoryRow : React.FC<Props> = ({ category }) => {
                 />
             )}
         </>
-    )
-}
+    );
+};
+
 export default CategoryRow;
