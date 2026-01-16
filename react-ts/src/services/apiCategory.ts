@@ -1,42 +1,33 @@
 import { createApi } from "@reduxjs/toolkit/query/react";
-import type { ICategoryItem } from "../types/category/ICategoryItem.ts";
-import { serverBaseQuery} from "../utils/fetchBaseQuery.ts";
-import type { ICategoryCreate } from "../types/category/ICategoryCreate.ts";
+import { serverBaseQuery } from "../utils/fetchBaseQuery";
 import { serialize } from "object-to-formdata";
 
+export interface Category {
+    id: number;
+    name: string;
+    image: string;
+}
+
+export interface CreateCategoryRequest {
+    name: string;
+    image: File | null;  // ⬅️ ЗМІНЕНО
+}
+
 export const apiCategory = createApi({
-    reducerPath: 'apiCategory',
+    reducerPath: "apiCategory",
     baseQuery: serverBaseQuery("categories"),
-    tagTypes: ['Categories'],
+    tagTypes: ["Categories"],
     endpoints: (builder) => ({
-        getCategories: builder.query<ICategoryItem[], void>({
-            query: () => ({
-                url: "",
-                method: "GET"
-            }),
-            providesTags: ['Categories'],
+        getCategories: builder.query<Category[], void>({
+            query: () => "",
+            providesTags: ["Categories"],
         }),
-        getCategoryById: builder.query<ICategoryItem, number>({
-            query: (id) => `/${id}`,
-            providesTags: ['Categories'],
-        }),
-        categoryCreate: builder.mutation<void, ICategoryCreate>({
-            query: (model) => {
-                const formData = serialize(model);
+        createCategory: builder.mutation<Category, CreateCategoryRequest>({
+            query: (category) => {
+                const formData = serialize(category);  // ⬅️ ДОДАНО FormData
                 return {
-                    method: "POST",
                     url: "",
-                    body: formData
-                }
-            },
-            invalidatesTags: ["Categories"]
-        }),
-        categoryUpdate: builder.mutation<ICategoryItem, { id: number; data: ICategoryCreate }>({
-            query: ({ id, data }) => {
-                const formData = serialize(data);
-                return {
-                    url: `/${id}`,
-                    method: "PUT",
+                    method: "POST",
                     body: formData,
                 };
             },
@@ -44,18 +35,16 @@ export const apiCategory = createApi({
         }),
         deleteCategory: builder.mutation<void, number>({
             query: (id) => ({
-                url: `/${id}`,
-                method: "DELETE"
+                url: `${id}`,
+                method: "DELETE",
             }),
-            invalidatesTags: ['Categories'],
+            invalidatesTags: ["Categories"],
         }),
     }),
 });
 
 export const {
     useGetCategoriesQuery,
-    useGetCategoryByIdQuery,
-    useCategoryCreateMutation,
-    useCategoryUpdateMutation,
-    useDeleteCategoryMutation
+    useCreateCategoryMutation,
+    useDeleteCategoryMutation,
 } = apiCategory;

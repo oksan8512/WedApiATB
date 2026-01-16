@@ -10,6 +10,8 @@ interface ProtectedAdminRouteProps {
 interface JwtPayload {
     'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'?: string | string[];
     role?: string | string[];
+    roles?: string | string[];
+    [key: string]: any;
 }
 
 const ProtectedAdminRoute: FC<ProtectedAdminRouteProps> = ({
@@ -19,27 +21,40 @@ const ProtectedAdminRoute: FC<ProtectedAdminRouteProps> = ({
     const token = localStorage.getItem('authToken');
     
     if (!token) {
+        console.log('🚫 Токен не знайдено, перенаправлення на /login');
         return <Navigate to="/login" replace />;
     }
 
     try {
         const decoded = jwtDecode<JwtPayload>(token);
+        console.log('🔐 ProtectedAdminRoute - Декодований токен:', decoded);
         
-        // Отримуємо роль з токена (ASP.NET Identity зберігає роль у специфічному claim)
-        const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
+        // Шукаємо роль у ВСІХ можливих полях
+        const role = 
+            decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+            decoded.role ||
+            decoded.Role ||
+            decoded.roles ||
+            decoded.Roles;
+        
+        console.log('👤 ProtectedAdminRoute - Знайдена роль:', role);
         
         // Перевіряємо чи є роль Admin
         const isAdmin = Array.isArray(role) 
             ? role.includes('Admin') 
             : role === 'Admin';
 
+        console.log('✅ ProtectedAdminRoute - Це адмін?', isAdmin);
+
         if (!isAdmin) {
+            console.log('🚫 Не адмін, перенаправлення на', redirectTo);
             return <Navigate to={redirectTo} replace />;
         }
 
+        console.log('✅ Доступ дозволено до admin панелі');
         return <>{children}</>;
     } catch (error) {
-        console.error("Error decoding token:", error);
+        console.error("❌ Помилка декодування токена:", error);
         return <Navigate to="/login" replace />;
     }
 };

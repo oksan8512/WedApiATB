@@ -23,6 +23,11 @@ export const apiAccount = createApi({
                     throw new Error("Помилка перетворення данних");
                 }
             },
+            // Автоматично зберігаємо токен після реєстрації
+            transformResponse: (response: ILoginResponse) => {
+                localStorage.setItem("authToken", response.token);
+                return response;
+            },
         }),
         login: builder.mutation<ILoginResponse, IAccountLogin>({
             query: (model) => {
@@ -30,16 +35,20 @@ export const apiAccount = createApi({
                     return {
                         method: "POST",
                         url: "login",
-                        body: model
+                        body: model,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
                     }
                 } catch {
                     throw new Error("Помилка перетворення данних");
                 }
             },
-            // transformResponse: (response: ILoginResponse) => {
-            //     localStorage.setItem("token", response.token);
-            //     return response;
-            // },
+            // Автоматично зберігаємо токен після входу
+            transformResponse: (response: ILoginResponse) => {
+                localStorage.setItem("authToken", response.token);
+                return response;
+            },
         })
     })
 })

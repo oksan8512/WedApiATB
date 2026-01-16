@@ -1,145 +1,131 @@
-import {useState} from "react";
-import {useLoginMutation} from "../../../services/apiAccount.ts";
-import {useNavigate} from "react-router";
-import type {IAccountLogin} from "../../../types/account/IAccountLogin.ts";
-import {useAppDispatch} from "../../../store";
-import {login} from "../../../store/authSlice.ts";
-import APP_ENV from "../../../env";
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useLoginMutation } from '../../../services/apiAccount';
 import { jwtDecode } from 'jwt-decode';
 
 interface JwtPayload {
     'http://schemas.microsoft.com/ws/2008/06/identity/claims/role'?: string | string[];
     role?: string | string[];
+    roles?: string | string[];
+    [key: string]: any;
 }
 
 const LoginPage = () => {
-    const [form, setForm] = useState<IAccountLogin>({
-        email: "",
-        password: "",
-    });
+    const navigate = useNavigate();
+    const [login, { isLoading }] = useLoginMutation();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
-    const [loginRequest, {isError}] = useLoginMutation();
-    const navigator = useNavigate();
-    const dispatch = useAppDispatch();
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
 
-    const handlerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const {name, value} = e.target;
-        setForm({
-            ...form,
-            [name]: value,
-        });
-    };
-
-    const checkIfAdmin = (token: string): boolean => {
         try {
-            const decoded = jwtDecode<JwtPayload>(token);
+            const response = await login({ email, password }).unwrap();
             
-            // Отримуємо роль з токена (ASP.NET Identity зберігає роль у специфічному claim)
-            const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded.role;
-            
-            // Перевіряємо чи є роль Admin
-            return Array.isArray(role) 
+            // Зберігаємо токен
+            localStorage.setItem('authToken', response.token);
+
+            // Декодуємо токен
+            const decoded = jwtDecode<JwtPayload>(response.token);
+
+            // Шукаємо роль у ВСІХ можливих полях
+            const role = 
+                decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                decoded.role ||
+                decoded.Role ||
+                decoded.roles ||
+                decoded.Roles;
+
+            // Перевіряємо чи користувач адмін
+            const isAdmin = Array.isArray(role) 
                 ? role.includes('Admin') 
                 : role === 'Admin';
-        } catch (error) {
-            console.error("Error decoding token", error);
-            return false;
-        }
-    };
 
-    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        try {
-            console.log("Login", form);
-            const result = await loginRequest(form).unwrap();
-            dispatch(login(result.token));
-            
-            // Перевіряємо чи користувач адмін і перенаправляємо
-            if (checkIfAdmin(result.token)) {
-                navigator("/admin");
+            // Перенаправляємо
+            if (isAdmin) {
+                setTimeout(() => navigate('/admin', { replace: true }), 100);
             } else {
-                navigator("/");
+                setTimeout(() => navigate('/', { replace: true }), 100);
             }
-        } catch(error) {
-            console.error("Error login", error);
-        }
-    };
 
-    const handleGoogleLogin = () => {
-        // Перенаправляємо на backend endpoint для Google OAuth
-        window.location.href = `${APP_ENV.API_URL}/api/Account/GoogleLogin`;
+        } catch (err: any) {
+            console.error('❌ Помилка входу:', err);
+            setError(err?.data?.message || 'Невірний email або пароль');
+        }
     };
 
     return (
-        <>
-            <h1 className={"text-4xl font-extrabold dark:text-white text-center mb-8"}>Вхід</h1>
-
-            <form className="max-w-md mx-auto" onSubmit={handleSubmit}>
-                {isError ? (
-                    <>
-                        <p className={"mb-5 text-red-500 font-semibold"}>Невірний email або пароль</p>
-                    </>
-                ) : (<></>)}
-
-                <div className="relative z-0 w-full mb-5 group">
-                    <input 
-                        type="text" 
-                        name="email" 
-                        id="email"
-                        className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                        placeholder=" "
-                        onChange={handlerChange}
-                        value={form.email}
-                    />
-                    <label 
-                        htmlFor="email"
-                        className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-                    >
-                        Email
-                    </label>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+            <div className="max-w-md w-full space-y-8">
+                <div>
+                    <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                        Вхід в систему
+                    </h2>
                 </div>
+                <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+                    {error && (
+                        <div className="rounded-md bg-red-50 p-4">
+                            <div className="text-sm text-red-800">{error}</div>
+                        </div>
+                    )}
+                    
+                    <div className="rounded-md shadow-sm space-y-4">
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                placeholder="example@mail.com"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                                Пароль
+                            </label>
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="current-password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                                placeholder="Пароль"
+                            />
+                        </div>
+                    </div>
 
-                <div className="relative z-0 w-full mb-5 group">
-                    <input 
-                        type="password" 
-                        name="password" 
-                        id="password"
-                        className="block py-2.5 px-0 w-full text-sm text-gray-900 bg-transparent border-0 border-b-2 border-gray-300 appearance-none dark:text-white dark:border-gray-600 dark:focus:border-blue-500 focus:outline-none focus:ring-0 focus:border-blue-600 peer"
-                        placeholder=" "
-                        onChange={handlerChange}
-                        value={form.password}
-                    />
-                    <label 
-                        htmlFor="password"
-                        className="peer-focus:font-medium absolute text-sm text-gray-500 dark:text-gray-400 duration-300 transform -translate-y-6 scale-75 top-3 -z-10 origin-[0] peer-focus:start-0 rtl:peer-focus:translate-x-1/4 rtl:peer-focus:left-auto peer-focus:text-blue-600 peer-focus:dark:text-blue-500 peer-placeholder-shown:scale-100 peer-placeholder-shown:translate-y-0 peer-focus:scale-75 peer-focus:-translate-y-6"
-                    >
-                        Пароль
-                    </label>
-                </div>
+                    <div>
+                        <button
+                            type="submit"
+                            disabled={isLoading}
+                            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isLoading ? 'Вхід...' : 'Увійти'}
+                        </button>
+                    </div>
 
-                <div className="flex items-center gap-3">
-                    <button 
-                        type="submit"
-                        className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm w-full sm:w-auto px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                    >
-                        Увійти
-                    </button>
-                    <button 
-                        type="button"
-                        onClick={handleGoogleLogin}
-                        className="text-white bg-[#4285F4] hover:bg-[#4285F4]/90 focus:ring-4 focus:outline-none focus:ring-[#4285F4]/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:focus:ring-[#4285F4]/55"
-                    >
-                        <svg className="w-4 h-4 me-2" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"
-                             fill="currentColor" viewBox="0 0 18 19">
-                            <path fillRule="evenodd"
-                                  d="M8.842 18.083a8.8 8.8 0 0 1-8.65-8.948 8.841 8.841 0 0 1 8.8-8.652h.153a8.464 8.464 0 0 1 5.7 2.257l-2.193 2.038A5.27 5.27 0 0 0 9.09 3.4a5.882 5.882 0 0 0-.2 11.76h.124a5.091 5.091 0 0 0 5.248-4.057L14.3 11H9V8h8.34c.066.543.095 1.09.088 1.636-.086 5.053-3.463 8.449-8.4 8.449l-.186-.002Z"
-                                  clipRule="evenodd"/>
-                        </svg>
-                        Увійти за допомогою Google
-                    </button>
-                </div>
-            </form>
-        </>
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm">
+                            <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+                                Немає акаунту? Зареєструватися
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
     );
 };
 

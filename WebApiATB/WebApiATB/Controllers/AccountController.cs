@@ -39,24 +39,32 @@ namespace WebApiATB.Controllers
                     return Ok(new { token });
                 }
             }
-            return BadRequest();
+            return BadRequest(new { message = "Помилка реєстрації" });
         }
 
         [HttpPost]
-        [Consumes("multipart/form-data")]
+        [Consumes("application/json")] // ✅ ВИПРАВЛЕНО
         public async Task<IActionResult> Login([FromBody] LoginModel model)
         {
             var user = await userManager.FindByEmailAsync(model.Email);
             if (user == null)
             {
-                return BadRequest();
+                return BadRequest(new { message = "Невірний email або пароль" });
             }
+
+            // ✅ ДОДАНО: Перевірка пароля
+            var result = await signInManager.CheckPasswordSignInAsync(user, model.Password, false);
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { message = "Невірний email або пароль" });
+            }
+
             var token = await jwtTokenService.CreateTokenAsync(user);
             return Ok(new { token });
         }
 
         [HttpGet]
-        [Consumes("multipart/form-data")]
+        // ✅ ВИДАЛЕНО Consumes для GET запиту
         public IActionResult GoogleLogin()
         {
             var properties = new AuthenticationProperties
@@ -67,7 +75,7 @@ namespace WebApiATB.Controllers
         }
 
         [HttpGet]
-        [Consumes("multipart/form-data")]
+        // ✅ ВИДАЛЕНО Consumes для GET запиту
         public async Task<IActionResult> GoogleCallback()
         {
             var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
@@ -91,12 +99,10 @@ namespace WebApiATB.Controllers
                 return Redirect($"{frontendUrl}/login");
             }
 
-            // Перевіряємо чи користувач вже існує
             var user = await userManager.FindByEmailAsync(email);
 
             if (user == null)
             {
-                // Створюємо нового користувача
                 user = new UserEntity
                 {
                     Email = email,
@@ -106,7 +112,6 @@ namespace WebApiATB.Controllers
                     EmailConfirmed = true
                 };
 
-                // Зберігаємо аватар з Google якщо є
                 if (!string.IsNullOrEmpty(picture))
                 {
                     try
@@ -124,7 +129,6 @@ namespace WebApiATB.Controllers
                 {
                     await userManager.AddToRoleAsync(user, Roles.User);
 
-                    // Додаємо Google login до користувача
                     await userManager.AddLoginAsync(user, new UserLoginInfo(
                         GoogleDefaults.AuthenticationScheme,
                         googleId,
@@ -138,11 +142,9 @@ namespace WebApiATB.Controllers
             }
             else
             {
-                // Якщо користувач існує, перевіряємо чи є Google login
                 var logins = await userManager.GetLoginsAsync(user);
                 if (!logins.Any(l => l.LoginProvider == GoogleDefaults.AuthenticationScheme))
                 {
-                    // Додаємо Google login якщо його ще немає
                     await userManager.AddLoginAsync(user, new UserLoginInfo(
                         GoogleDefaults.AuthenticationScheme,
                         googleId,
@@ -150,10 +152,8 @@ namespace WebApiATB.Controllers
                 }
             }
 
-            // Створюємо JWT токен
             var token = await jwtTokenService.CreateTokenAsync(user);
 
-            // Перенаправляємо на frontend з токеном
             var frontendCallbackUrl = configuration["Frontend:Url"] ?? "http://localhost:5173";
             return Redirect($"{frontendCallbackUrl}/google-callback?token={token}");
         }

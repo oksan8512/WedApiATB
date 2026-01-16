@@ -21,30 +21,31 @@ public class JwtTokenService(IConfiguration configuration,
             new Claim("name", $"{user.LastName} {user.FirstName}"),
             new Claim("image", $"{user.Image}")
         };
+
+        // ВИПРАВЛЕНО: Використовуємо ClaimTypes.Role замість "roles"
         foreach (var role in await userManager.GetRolesAsync(user))
         {
-            claims.Add(new Claim("roles", role));
+            claims.Add(new Claim(ClaimTypes.Role, role)); // ✅ Тепер правильно!
+            Console.WriteLine($"[JWT] Added role: {role}"); // Для дебагу
         }
 
-        //ключ для підпису токена - перетворив у байти
+        Console.WriteLine($"[JWT] Created token for: {user.Email} with {claims.Count} claims");
+
+        // ключ для підпису токена - перетворив у байти
         var keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
-
-        //створюємо об'єкт для підпису токена
+        // створюємо об'єкт для підпису токена
         var symmetricSecurityKey = new SymmetricSecurityKey(keyBytes);
-
-        //вказуємо ключ і алгоритм підпису токена
+        // вказуємо ключ і алгоритм підпису токена
         var signingCredentials = new SigningCredentials(
             symmetricSecurityKey,
             SecurityAlgorithms.HmacSha256);
-
-        //створюємо токен
+        // створюємо токен
         var jwtSecurityToken = new JwtSecurityToken(
-            claims: claims, //список параметрів у токені, які є доступні
-            expires: DateTime.UtcNow.AddDays(7), // термін дії токена - після цього часу токен буде недійсний
+            claims: claims, // список параметрів у токені, які є доступні
+            expires: DateTime.UtcNow.AddDays(7), // термін дії токена
             signingCredentials: signingCredentials);
 
         string token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken);
-
         return token;
     }
 }
